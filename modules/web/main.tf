@@ -24,19 +24,27 @@ resource "aws_security_group" "elb" {
   }
 }
 
-resource "aws_elb" "web" {
-  name = "terraform-example-elb"
-
+resource "aws_lb" "alb" {
+  name = "terraform-example-alb"
+  internal           = false
+  load_balancer_type = "application"
   subnets         = ["${module.infra.default_subnet_id}"]
   security_groups = ["${module.infra.default_security_group_id}"]
-  instances       = ["${aws_instance.web.id}"]
+}
 
-  listener {
-    instance_port     = 80
-    instance_protocol = "http"
-    lb_port           = 80
-    lb_protocol       = "http"
-  }
+resource "aws_lb_target_group" "target_group" {
+  name = "terraform-example-tg"
+  
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = "${module.infra.default_vpc_id}"
+
+}
+
+resource "aws_lb_target_group_attachment" "tg_ec2_attachment" {
+  target_group_arn = "${aws_lb_target_group.target_group.arn}"
+  target_id        = "${aws_instance.web.id}"
+  port             = 80
 }
 
 resource "aws_instance" "web" {
